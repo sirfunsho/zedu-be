@@ -109,7 +109,19 @@ func (base *Controller) GetCredentialByID(c *gin.Context) {
 		return
 	}
 
-	resp, code, err := credentials.GetCredentialByIDService(credentialId, base.Db.Postgresql)
+	claims, exists := c.Get("userClaims")
+	if !exists {
+		base.Logger.Info("error getting claims")
+		rd := utility.BuildErrorResponse(http.StatusUnauthorized, "error", "Unauthorized", nil, nil)
+		c.JSON(http.StatusUnauthorized, rd)
+		return
+	}
+
+	userClaims := claims.(jwt.MapClaims)
+	userId, _ := userClaims["user_id"].(string)
+	orgId, _ := userClaims["org_id"].(string)
+
+	resp, code, err := credentials.GetCredentialByIDService(credentialId, userId, orgId, base.Db.Postgresql)
 	if err != nil {
 		base.Logger.Error("error fetching credential", err)
 		rd := utility.BuildErrorResponse(code, "error", err.Error(), err, nil)
